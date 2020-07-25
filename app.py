@@ -1,10 +1,11 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 import sys
 from flask_migrate import Migrate
 app = Flask(__name__)
 # note if the database must be created as SQLAlchemy will not create it for us
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres@localhost:5432/todoapp'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 migrate = Migrate(app, db)
@@ -21,10 +22,11 @@ class Todo(db.Model):
         return f'<TODO {self.id} {self.description}>'
 
 
-#db.create_all()
+# db.create_all()
 
 
 # Controllers
+# CREATE
 @app.route('/todos/create', methods=['POST'])
 def create_todo():
     error = False
@@ -37,6 +39,8 @@ def create_todo():
         # to acess the todo object during the session only
         # to not cause an error
         body['description'] = todo.description
+        body['id'] = todo.id
+        body['completed'] = todo.completed
         # tells the view to redirect to the index route
         # but it requires page refresh to show changes
 
@@ -52,6 +56,23 @@ def create_todo():
             return jsonify(body)
 
 
+# Update
+@app.route('/todos/<todo_id>/set-completed', methods=['POST'])
+def set_completed_todo(todo_id):
+    try:
+        completed = request.get_json()['completed']
+        print('completed', completed)
+        todo = Todo.query.get(todo_id)
+        todo.completed = completed
+        db.session.commit()
+    except:
+        db.session.rollback()
+    finally:
+        db.session.close()
+    return redirect(url_for('index'))
+
+
+# READ
 @app.route('/')
 def index():
     # function to specify an html file to render
@@ -63,4 +84,4 @@ def index():
     # on the todos table of the database
     # and it is telling the views to use the index.html template
     # to show that data
-    return render_template('index.html', data=Todo.query.all())
+    return render_template('index.html', todos=Todo.query.order_by('id').all())
