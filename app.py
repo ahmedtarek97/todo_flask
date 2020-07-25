@@ -1,10 +1,13 @@
 from flask import Flask, render_template, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 import sys
+from flask_migrate import Migrate
 app = Flask(__name__)
 # note if the database must be created as SQLAlchemy will not create it for us
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres@localhost:5432/todoapp'
 db = SQLAlchemy(app)
+
+migrate = Migrate(app, db)
 
 
 # Models
@@ -12,12 +15,13 @@ class Todo(db.Model):
     __tablename__ = 'todos'
     id = db.Column(db.Integer, primary_key=True)
     description = db.Column(db.String(), nullable=False)
+    completed = db.Column(db.Boolean, nullable=False, default=False)
 
     def __repr__(self):
         return f'<TODO {self.id} {self.description}>'
 
 
-db.create_all()
+#db.create_all()
 
 
 # Controllers
