@@ -17,10 +17,17 @@ class Todo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     description = db.Column(db.String(), nullable=False)
     completed = db.Column(db.Boolean, nullable=False, default=False)
-
+    list_id = db.Column(db.Integer, db.ForeignKey('todolists.id'), nullable=False)
+    
     def __repr__(self):
         return f'<TODO {self.id} {self.description}>'
 
+
+class TodoList(db.Model):
+    __tablename__ = 'todolists'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(), nullable=False)
+    todos = db.relationship('Todo', backref='list')
 
 # db.create_all()
 
@@ -86,8 +93,8 @@ def set_completed_todo(todo_id):
 
 
 # READ
-@app.route('/')
-def index():
+@app.route('/lists/<list_id>')
+def get_list_todos(list_id):
     # function to specify an html file to render
     # when the user visits this route
     # by default flak searches for these files in a folder named templates
@@ -97,4 +104,9 @@ def index():
     # on the todos table of the database
     # and it is telling the views to use the index.html template
     # to show that data
-    return render_template('index.html', todos=Todo.query.order_by('id').all())
+    return render_template('index.html', todos=Todo.query.filter_by(list_id=list_id).order_by('id').all())
+
+
+@app.route('/')
+def index():
+    return redirect(url_for('get_list_todos', list_id=1))
